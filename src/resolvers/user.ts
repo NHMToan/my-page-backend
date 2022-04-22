@@ -1,114 +1,125 @@
-import { RegisterInput } from '../types/RegisterInput'
-import { Arg, Ctx, ID, Mutation, Query, Resolver } from 'type-graphql'
-import { User } from '../entities/User'
-import argon2 from 'argon2'
-import { UserMutationResponse } from '../types/UserMutationResponse'
-import { LoginInput } from '../types/LoginInput'
-import { createToken, sendRefreshToken } from '../utils/auth'
-import { Context } from '../types/Context'
+import argon2 from "argon2";
+import { Arg, Ctx, ID, Mutation, Query, Resolver } from "type-graphql";
+import { User } from "../entities/User";
+import { Context } from "../types/Context";
+import { LoginInput } from "../types/LoginInput";
+import { RegisterInput } from "../types/RegisterInput";
+import { UserMutationResponse } from "../types/UserMutationResponse";
+import { createToken, sendRefreshToken } from "../utils/auth";
 
 @Resolver()
 export class UserResolver {
-	@Query(_return => [User])
-	async users(): Promise<User[]> {
-		return await User.find()
-	}
+  @Query((_return) => [User])
+  async users(): Promise<User[]> {
+    return await User.find();
+  }
 
-	@Mutation(_return => UserMutationResponse)
-	async register(
-		@Arg('registerInput')
-		registerInput: RegisterInput
-	): Promise<UserMutationResponse> {
-		const { username, password } = registerInput
+  @Mutation((_return) => UserMutationResponse)
+  async register(
+    @Arg("registerInput")
+    registerInput: RegisterInput
+  ): Promise<UserMutationResponse> {
+    const { username, password, invitedCode } = registerInput;
 
-		const existingUser = await User.findOne({ username })
+    if (!invitedCode || invitedCode !== process.env.INVITED_CODE) {
+      return {
+        code: 400,
+        success: false,
+        message: "Pls Input invited code wrongly!",
+      };
+    }
 
-		if (existingUser) {
-			return {
-				code: 400,
-				success: false,
-				message: 'Duplicated username'
-			}
-		}
+    const existingUser = await User.findOne({ username });
 
-		const hashedPassword = await argon2.hash(password)
+    if (existingUser) {
+      return {
+        code: 400,
+        success: false,
+        message: "Duplicated username",
+      };
+    }
 
-		const newUser = User.create({
-			username,
-			password: hashedPassword
-		})
+    const hashedPassword = await argon2.hash(password);
 
-		await newUser.save()
+    const newUser = User.create({
+      username,
+      password: hashedPassword,
+    });
 
-		return {
-			code: 200,
-			success: true,
-			message: 'User registration successful',
-			user: newUser
-		}
-	}
+    await newUser.save();
 
-	@Mutation(_return => UserMutationResponse)
-	async login(
-		@Arg('loginInput') { username, password }: LoginInput,
-		@Ctx() { res }: Context
-	): Promise<UserMutationResponse> {
-		const existingUser = await User.findOne({ username })
+    return {
+      code: 200,
+      success: true,
+      message: "User registration successful",
+      user: newUser,
+    };
+  }
 
-		if (!existingUser) {
-			return {
-				code: 400,
-				success: false,
-				message: 'User not found'
-			}
-		}
+  @Mutation((_return) => UserMutationResponse)
+  async login(
+    @Arg("loginInput") { username, password }: LoginInput,
+    @Ctx() { res }: Context
+  ): Promise<UserMutationResponse> {
+    const existingUser = await User.findOne({ username });
 
-		const isPasswordValid = await argon2.verify(existingUser.password, password)
+    if (!existingUser) {
+      return {
+        code: 400,
+        success: false,
+        message: "User not found",
+      };
+    }
 
-		if (!isPasswordValid) {
-			return {
-				code: 400,
-				success: false,
-				message: 'Incorrect password'
-			}
-		}
+    const isPasswordValid = await argon2.verify(
+      existingUser.password,
+      password
+    );
 
-		sendRefreshToken(res, existingUser)
+    if (!isPasswordValid) {
+      return {
+        code: 400,
+        success: false,
+        message: "Incorrect password",
+      };
+    }
 
-		return {
-			code: 200,
-			success: true,
-			message: 'Logged in successfully',
-			user: existingUser,
-			accessToken: createToken('accessToken', existingUser)
-		}
-	}
+    sendRefreshToken(res, existingUser);
 
-	@Mutation(_return => UserMutationResponse)
-	async logout(
-		@Arg('userId', _type => ID) userId: number,
-		@Ctx() { res }: Context
-	): Promise<UserMutationResponse> {
-		const existingUser = await User.findOne(userId)
+    return {
+      code: 200,
+      success: true,
+      message: "Logged in successfully",
+      user: existingUser,
+      accessToken: createToken("accessToken", existingUser),
+    };
+  }
 
-		if (!existingUser) {
-			return {
-				code: 400,
-				success: false
-			}
-		}
+  @Mutation((_return) => UserMutationResponse)
+  async logout(
+    @Arg("userId", (_type) => ID) userId: number,
+    @Ctx() { res }: Context
+  ): Promise<UserMutationResponse> {
+    const existingUser = await User.findOne(userId);
 
-		existingUser.tokenVersion += 1
+    if (!existingUser) {
+      return {
+        code: 400,
+        success: false,
+      };
+    }
 
-		await existingUser.save()
+    existingUser.tokenVersion += 1;
 
-		res.clearCookie(process.env.REFRESH_TOKEN_COOKIE_NAME as string, {
-			httpOnly: true,
-			secure: true,
-			sameSite: 'lax',
-			path: '/refresh_token'
-		})
+    await existingUser.save();
 
-		return { code: 200, success: true }
-	}
+    res.clearCookie(process.env.REFRESH_TOKEN_COOKIE_NAME as string, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      path: "/refresh_token",
+    });
+
+    return { code: 200, success: true };
+  }
 }

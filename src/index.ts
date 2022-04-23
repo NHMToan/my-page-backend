@@ -13,6 +13,7 @@ import "reflect-metadata";
 import { buildSchema } from "type-graphql";
 import { createConnection } from "typeorm";
 import { __prod__ } from "./constants";
+import { Post } from "./entities/Post";
 import { User } from "./entities/User";
 import { GreetingResolver } from "./resolvers/greeting";
 import { UserResolver } from "./resolvers/user";
@@ -38,7 +39,7 @@ const main = async () => {
           synchronize: true,
         }),
     logging: true,
-    entities: [User],
+    entities: [User, Post],
     migrations: [path.join(__dirname, "/migrations/*")],
   });
   if (__prod__) await connection.runMigrations();

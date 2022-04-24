@@ -23,7 +23,7 @@ export class User extends BaseEntity {
   password!: string;
 
   @Field({ nullable: true })
-  @Column({ nullable: true })
+  @Column({ nullable: true, default: "" })
   name!: string;
 
   @OneToMany(() => Post, (post) => post.user)

@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
 import { Session, SessionData } from "express-session";
-import { buildDataLoaders } from "src/utils/dataLoaders";
 import { Connection } from "typeorm";
+import { buildDataLoaders } from "../utils/dataLoaders";
 import { UserAuthPayload } from "./UserAuthPayload";
 export interface Context {
   req: Request & {
-    session: Session & Partial<SessionData> & { userId?: number };
+    session: Session & Partial<SessionData> & { accessToken?: string };
   };
   res: Response;
   user: UserAuthPayload;

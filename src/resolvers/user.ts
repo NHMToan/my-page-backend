@@ -1,6 +1,16 @@
 import argon2 from "argon2";
-import { Arg, Ctx, ID, Mutation, Query, Resolver } from "type-graphql";
+import {
+  Arg,
+  Ctx,
+  ID,
+  Mutation,
+  Query,
+  Resolver,
+  UseMiddleware,
+} from "type-graphql";
+import { __prod__ } from "../constants";
 import { User } from "../entities/User";
+import { checkAuth } from "../middleware/checkAuth";
 import { Context } from "../types/Context";
 import { LoginInput } from "../types/LoginInput";
 import { RegisterInput } from "../types/RegisterInput";
@@ -12,6 +22,14 @@ export class UserResolver {
   @Query((_return) => [User])
   async users(): Promise<User[]> {
     return await User.find();
+  }
+
+  @Query((_return) => User, { nullable: true })
+  @UseMiddleware(checkAuth)
+  async me(@Ctx() { user, req }: Context): Promise<User | undefined | null> {
+    if (!req.session.accessToken) return null;
+    const foundUser = await User.findOne(user.userId);
+    return foundUser;
   }
 
   @Mutation((_return) => UserMutationResponse)
@@ -61,38 +79,49 @@ export class UserResolver {
     @Arg("loginInput") { username, password }: LoginInput,
     @Ctx() { res }: Context
   ): Promise<UserMutationResponse> {
-    const existingUser = await User.findOne({ username });
+    try {
+      const existingUser = await User.findOne({ username });
 
-    if (!existingUser) {
+      if (!existingUser) {
+        return {
+          code: 400,
+          success: false,
+          message: "User not found",
+        };
+      }
+
+      const isPasswordValid = await argon2.verify(
+        existingUser.password,
+        password
+      );
+
+      if (!isPasswordValid) {
+        return {
+          code: 400,
+          success: false,
+          message: "Incorrect password",
+        };
+      }
+
+      const accessToken = createToken("accessToken", existingUser);
+
+      sendRefreshToken(res, existingUser);
+
       return {
-        code: 400,
+        code: 200,
+        success: true,
+        message: "Logged in successfully",
+        user: existingUser,
+        accessToken,
+      };
+    } catch (error) {
+      console.log(error);
+      return {
+        code: 500,
         success: false,
-        message: "User not found",
+        message: `Internal server error ${error.message}`,
       };
     }
-
-    const isPasswordValid = await argon2.verify(
-      existingUser.password,
-      password
-    );
-
-    if (!isPasswordValid) {
-      return {
-        code: 400,
-        success: false,
-        message: "Incorrect password",
-      };
-    }
-
-    sendRefreshToken(res, existingUser);
-
-    return {
-      code: 200,
-      success: true,
-      message: "Logged in successfully",
-      user: existingUser,
-      accessToken: createToken("accessToken", existingUser),
-    };
   }
 
   @Mutation((_return) => UserMutationResponse)
@@ -115,8 +144,8 @@ export class UserResolver {
 
     res.clearCookie(process.env.REFRESH_TOKEN_COOKIE_NAME as string, {
       httpOnly: true,
-      secure: true,
-      sameSite: "lax",
+      secure: __prod__,
+      sameSite: "none",
       path: "/refresh_token",
     });
 

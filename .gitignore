@@ -2,4 +2,6 @@
 /.env
 /dist
 /ormconfig.json
-/.dockerIns
+/.deployIns
+/ormconfig.dev.json
+/ormconfig.production.json

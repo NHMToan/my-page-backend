@@ -16,9 +16,11 @@ import { __prod__ } from "./constants";
 import { Post } from "./entities/Post";
 import { User } from "./entities/User";
 import { GreetingResolver } from "./resolvers/greeting";
+import { PostResolver } from "./resolvers/post";
 import { UserResolver } from "./resolvers/user";
 import refreshTokenRouter from "./routes/refreshTokenRouter";
 import { Context } from "./types/Context";
+import { buildDataLoaders } from "./utils/dataLoaders";
 const main = async () => {
   const connection = await createConnection({
     type: "postgres",
@@ -63,13 +65,21 @@ const main = async () => {
   const apolloServer = new ApolloServer({
     schema: await buildSchema({
       validate: false,
-      resolvers: [GreetingResolver, UserResolver],
+      resolvers: [GreetingResolver, UserResolver, PostResolver],
     }),
     plugins: [
       ApolloServerPluginDrainHttpServer({ httpServer }),
       ApolloServerPluginLandingPageGraphQLPlayground,
     ],
-    context: ({ req, res }): Pick<Context, "req" | "res"> => ({ req, res }),
+    context: ({
+      req,
+      res,
+    }): Pick<Context, "req" | "res" | "connection" | "dataLoaders"> => ({
+      req,
+      res,
+      connection,
+      dataLoaders: buildDataLoaders(),
+    }),
   });
 
   await apolloServer.start();

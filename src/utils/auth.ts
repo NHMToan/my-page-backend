@@ -1,5 +1,6 @@
 import { Response } from "express";
 import { Secret, sign } from "jsonwebtoken";
+import { __prod__ } from "../constants";
 import { User } from "../entities/User";
 
 export const createToken = (type: "accessToken" | "refreshToken", user: User) =>
@@ -21,9 +22,9 @@ export const sendRefreshToken = (res: Response, user: User) => {
     process.env.REFRESH_TOKEN_COOKIE_NAME as string,
     createToken("refreshToken", user),
     {
-      httpOnly: true,
-      secure: true,
-      sameSite: "lax",
+      httpOnly: true, // JS front end cannot access the cookie
+      secure: __prod__, // cookie only works in https
+      sameSite: "none",
       path: "/refresh_token",
     }
   );

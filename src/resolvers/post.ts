@@ -28,12 +28,9 @@ export class PostResolver {
   }
 
   @FieldResolver((_return) => User)
-  async user(
-    @Root() root: Post,
-    @Ctx() { dataLoaders: { userLoader } }: Context
-  ) {
-    // return await User.findOne(root.userId)
-    return await userLoader.load(root.userId);
+  async user(@Root() root: Post) {
+    return await User.findOne(root.userId);
+    // return await userLoader.load(root.userId);
   }
 
   @Mutation((_return) => PostMutationResponse)
@@ -74,25 +71,29 @@ export class PostResolver {
   async posts(
     @Arg("limit", (_type) => Int) limit: number,
     @Arg("offset", (_type) => Int) offset: number,
-    @Arg("ordering", (_type) => String) ordering: string = "createdAt"
+    @Arg("ordering", (_type) => String!, { nullable: true }) ordering: string
   ): Promise<Posts | null> {
     try {
       const totalPostCount = await Post.count();
       const realLimit = Math.min(50, limit);
+      const realOffset = offset || 0;
+
+      const orderingField = ordering || "createdAt";
 
       const findOptions: FindManyOptions<Post> = {
         order: {
-          [ordering]: ordering.startsWith("-") ? "DESC" : "ASC",
+          [orderingField]: ordering?.startsWith("-") ? "DESC" : "ASC",
         },
         take: realLimit,
-        skip: offset,
+        skip: realOffset,
       };
 
       const posts = await Post.find(findOptions);
 
+      let hasMore = realLimit + realOffset < totalPostCount;
       return {
         totalCount: totalPostCount,
-        hasMore: (offset && offset > totalPostCount) || false,
+        hasMore,
         results: posts,
       };
     } catch (error) {
@@ -116,7 +117,7 @@ export class PostResolver {
   @UseMiddleware(checkAuth)
   async updatePost(
     @Arg("updatePostInput") { id, title, text }: UpdatePostInput,
-    @Ctx() { req }: Context
+    @Ctx() { user }: Context
   ): Promise<PostMutationResponse> {
     const existingPost = await Post.findOne(id);
     if (!existingPost)
@@ -126,7 +127,7 @@ export class PostResolver {
         message: "Post not found",
       };
 
-    if (existingPost.userId !== req.session.userId) {
+    if (existingPost.userId !== user.id) {
       return { code: 401, success: false, message: "Unauthorised" };
     }
 
@@ -147,7 +148,7 @@ export class PostResolver {
   @UseMiddleware(checkAuth)
   async deletePost(
     @Arg("id", (_type) => ID) id: number,
-    @Ctx() { req }: Context
+    @Ctx() { user }: Context
   ): Promise<PostMutationResponse> {
     const existingPost = await Post.findOne(id);
     if (!existingPost)
@@ -157,7 +158,7 @@ export class PostResolver {
         message: "Post not found",
       };
 
-    if (existingPost.userId !== req.session.userId) {
+    if (existingPost.userId !== user.id) {
       return { code: 401, success: false, message: "Unauthorised" };
     }
 

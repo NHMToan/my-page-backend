@@ -158,8 +158,12 @@ export class PostResolver {
         message: "Post not found",
       };
 
-    if (existingPost.userId !== user.id) {
-      return { code: 401, success: false, message: "Unauthorised" };
+    if (existingPost.userId !== user.userId) {
+      return {
+        code: 401,
+        success: false,
+        message: "Unauthorised",
+      };
     }
 
     await Post.delete({ id });

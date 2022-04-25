@@ -10,4 +10,7 @@ export class RegisterInput {
 
   @Field()
   invitedCode: string;
+
+  @Field()
+  name: string;
 }

@@ -69,8 +69,8 @@ export class PostResolver {
 
   @Query((_return) => Posts, { nullable: true })
   async posts(
-    @Arg("limit", (_type) => Int) limit: number,
-    @Arg("offset", (_type) => Int) offset: number,
+    @Arg("limit", (_type) => Int!, { nullable: true }) limit: number,
+    @Arg("offset", (_type) => Int!, { nullable: true }) offset: number,
     @Arg("ordering", (_type) => String!, { nullable: true }) ordering: string
   ): Promise<Posts | null> {
     try {

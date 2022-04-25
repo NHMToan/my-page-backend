@@ -145,7 +145,7 @@ export class UserResolver {
     res.clearCookie(process.env.REFRESH_TOKEN_COOKIE_NAME as string, {
       httpOnly: true,
       secure: __prod__,
-      sameSite: "none",
+      sameSite: "lax",
       path: "/refresh_token",
     });
 

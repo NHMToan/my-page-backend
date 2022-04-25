@@ -24,7 +24,7 @@ export const sendRefreshToken = (res: Response, user: User) => {
     {
       httpOnly: true, // JS front end cannot access the cookie
       secure: __prod__, // cookie only works in https
-      sameSite: "none",
+      sameSite: "lax",
       path: "/refresh_token",
     }
   );

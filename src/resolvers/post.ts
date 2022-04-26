@@ -116,7 +116,7 @@ export class PostResolver {
   @Mutation((_return) => PostMutationResponse)
   @UseMiddleware(checkAuth)
   async updatePost(
-    @Arg("updatePostInput") { id, title, text }: UpdatePostInput,
+    @Arg("updatePostInput") { id, title, text, category }: UpdatePostInput,
     @Ctx() { user }: Context
   ): Promise<PostMutationResponse> {
     const existingPost = await Post.findOne(id);
@@ -127,12 +127,13 @@ export class PostResolver {
         message: "Post not found",
       };
 
-    if (existingPost.userId !== user.id) {
+    if (existingPost.userId !== user.userId) {
       return { code: 401, success: false, message: "Unauthorised" };
     }
 
     existingPost.title = title;
     existingPost.text = text;
+    existingPost.category = category;
 
     await existingPost.save();
 

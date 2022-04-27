@@ -2,7 +2,7 @@ import { AuthenticationError } from "apollo-server-express";
 import { Secret, verify } from "jsonwebtoken";
 import { MiddlewareFn } from "type-graphql";
 import { Context } from "../types/Context";
-import { UserAuthPayload } from "../types/UserAuthPayload";
+import { UserAuthPayload } from "../types/User/UserAuthPayload";
 
 export const checkAuth: MiddlewareFn<Context> = ({ context }, next) => {
   try {

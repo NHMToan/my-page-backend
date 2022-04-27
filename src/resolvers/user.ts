@@ -12,9 +12,9 @@ import { __prod__ } from "../constants";
 import { User } from "../entities/User";
 import { checkAuth } from "../middleware/checkAuth";
 import { Context } from "../types/Context";
-import { LoginInput } from "../types/LoginInput";
-import { RegisterInput } from "../types/RegisterInput";
-import { UserMutationResponse } from "../types/UserMutationResponse";
+import { LoginInput } from "../types/User/LoginInput";
+import { RegisterInput } from "../types/User/RegisterInput";
+import { UserMutationResponse } from "../types/User/UserMutationResponse";
 import { createToken, sendRefreshToken } from "../utils/auth";
 
 @Resolver()

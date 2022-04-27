@@ -15,10 +15,10 @@ import { Post } from "../entities/Post";
 import { User } from "../entities/User";
 import { checkAuth } from "../middleware/checkAuth";
 import { Context } from "../types/Context";
-import { CreatePostInput } from "../types/CreatePostInput";
-import { PostMutationResponse } from "../types/PostMutationResponse";
-import { Posts } from "../types/Posts";
-import { UpdatePostInput } from "../types/UpdatePostInput";
+import { CreatePostInput } from "../types/Post/CreatePostInput";
+import { PostMutationResponse } from "../types/Post/PostMutationResponse";
+import { Posts } from "../types/Post/Posts";
+import { UpdatePostInput } from "../types/Post/UpdatePostInput";
 
 @Resolver((_of) => Post)
 export class PostResolver {
